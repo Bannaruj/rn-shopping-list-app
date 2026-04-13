@@ -1,98 +1,193 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native';
+import { Theme } from '@/constants/Theme';
+import { supabase } from '@/lib/supabase';
+import { useFamily } from '@/contexts/FamilyContext';
+import { ShoppingListItem, Item } from '@/types/database';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type FilterType = 'All' | 'Not Bought' | 'Bought';
 
-export default function HomeScreen() {
+// The nested joined object
+type DashboardItem = ShoppingListItem & { items: Item };
+
+export default function DashboardScreen() {
+  const { familyId } = useFamily();
+  const [items, setItems] = useState<DashboardItem[]>([]);
+  const [filter, setFilter] = useState<FilterType>('Not Bought');
+  const [loading, setLoading] = useState(true);
+
+  const fetchList = useCallback(async () => {
+    if (!familyId) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('shopping_list')
+        .select(`
+          *,
+          items (*)
+        `)
+        .eq('family_id', familyId);
+
+      if (error) throw error;
+      setItems(data as unknown as DashboardItem[]);
+    } catch (e: any) {
+      Alert.alert('Error loading list', e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [familyId]);
+
+  useEffect(() => {
+    fetchList();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shopping_list', filter: `family_id=eq.${familyId}` },
+        () => {
+          fetchList(); 
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchList, familyId]);
+
+  const toggleStatus = async (id: string, currentStatus: string, item_id: string) => {
+    const newStatus = currentStatus === 'pending' ? 'bought' : 'pending';
+    
+    // Optimistic UI update
+    setItems((prev) => prev.map(i => i.id === id ? { ...i, status: newStatus as any } : i));
+
+    try {
+      const { error } = await supabase
+        .from('shopping_list')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (e: any) {
+      fetchList(); // revert
+      Alert.alert('Error', e.message);
+    }
+  };
+
+  const filteredItems = items.filter(item => {
+    if (filter === 'All') return true;
+    if (filter === 'Bought') return item.status === 'bought';
+    if (filter === 'Not Bought') return item.status === 'pending';
+    return true;
+  });
+
+  const renderItem = ({ item }: { item: DashboardItem }) => {
+    const isBought = item.status === 'bought';
+    
+    return (
+      <Card style={styles.itemCard}>
+        <View style={styles.itemContent}>
+          <View style={styles.itemTextContainer}>
+            <Text style={[styles.itemName, isBought && styles.itemBoughtText]}>{item.items?.name || 'Unknown item'}</Text>
+            <Text style={styles.itemCategory}>{item.items?.category || 'Uncategorized'}</Text>
+          </View>
+          <Checkbox checked={isBought} onValueChange={() => toggleStatus(item.id, item.status, item.item_id)} />
+        </View>
+      </Card>
+    );
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.container}>
+      <View style={styles.filterContainer}>
+        {(['Not Bought', 'Bought', 'All'] as FilterType[]).map(f => (
+          <Button
+            key={f}
+            title={f}
+            variant={filter === f ? 'primary' : 'outline'}
+            style={styles.filterButton}
+            onPress={() => setFilter(f)}
+          />
+        ))}
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <FlatList
+        data={filteredItems}
+        keyExtractor={item => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchList} />}
+        ListEmptyComponent={
+          !loading ? (
+             <View style={styles.emptyContainer}>
+               <Text style={styles.emptyText}>No items found in this section.</Text>
+             </View>
+          ) : null
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    padding: Theme.spacing.md,
+    gap: Theme.spacing.sm,
+    backgroundColor: Theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.xs,
+  },
+  listContainer: {
+    padding: Theme.spacing.md,
+  },
+  itemCard: {
+    padding: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
+  },
+  itemContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  itemTextContainer: {
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  itemName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Theme.colors.text,
   },
+  itemBoughtText: {
+    textDecorationLine: 'line-through',
+    color: Theme.colors.textSecondary,
+    opacity: 0.7,
+  },
+  itemCategory: {
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    marginTop: Theme.spacing.xs,
+  },
+  emptyContainer: {
+    padding: Theme.spacing.xl,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: Theme.colors.textSecondary,
+    fontSize: 16,
+  }
 });
