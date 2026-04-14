@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Theme } from '@/constants/Theme';
 import { supabase } from '@/lib/supabase';
 import { useFamily } from '@/contexts/FamilyContext';
@@ -43,9 +44,10 @@ export default function DashboardScreen() {
   useEffect(() => {
     fetchList();
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes with a unique channel name
+    const channelName = `shopping_list_changes_${familyId}_${Date.now()}`;
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'shopping_list', filter: `family_id=eq.${familyId}` },
@@ -103,7 +105,11 @@ export default function DashboardScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Dashboard</Text>
+      </View>
+
       <View style={styles.filterContainer}>
         {(['Not Bought', 'Bought', 'All'] as FilterType[]).map(f => (
           <Button
@@ -130,7 +136,7 @@ export default function DashboardScreen() {
           ) : null
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -138,6 +144,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
+  },
+  pageHeader: {
+    paddingHorizontal: Theme.spacing.md,
+    paddingTop: Theme.spacing.md,
+    paddingBottom: Theme.spacing.sm,
+  },
+  pageTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: Theme.colors.text,
   },
   filterContainer: {
     flexDirection: 'row',

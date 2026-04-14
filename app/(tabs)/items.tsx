@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Modal, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Theme } from '@/constants/Theme';
 import { supabase } from '@/lib/supabase';
 import { useFamily } from '@/contexts/FamilyContext';
@@ -119,7 +120,11 @@ export default function ItemsScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Items List</Text>
+      </View>
+
       <FlatList
         data={items}
         keyExtractor={item => item.id}
@@ -185,7 +190,7 @@ export default function ItemsScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -193,6 +198,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
+  },
+  pageHeader: {
+    paddingHorizontal: Theme.spacing.md,
+    paddingTop: Theme.spacing.md,
+    paddingBottom: Theme.spacing.xs,
+  },
+  pageTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: Theme.colors.text,
   },
   listContainer: {
     padding: Theme.spacing.md,

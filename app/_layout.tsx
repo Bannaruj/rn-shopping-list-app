@@ -25,7 +25,7 @@ function RootLayoutNav() {
       router.replace('/join');
     } else if (familyId && inJoinGroup) {
       // Redirect to tabs if joined
-      router.replace('/' as any);
+      router.replace('/(tabs)' as any);
     }
   }, [familyId, isLoading, segments]);
 
