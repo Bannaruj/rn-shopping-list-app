@@ -53,8 +53,8 @@ export default function JoinScreen() {
 
       // 3. Save to context
       await joinFamily(familyData.id, familyData.name, userData.id, userData.name);
-      
-      // Explicit navigation
+
+      // Explicit navigation to tabs
       router.replace('/(tabs)' as any);
 
     } catch (error: any) {
@@ -108,8 +108,8 @@ export default function JoinScreen() {
 
       // 4. Save to context
       await joinFamily(familyData.id, familyData.name, userData.id, userData.name);
-      
-      // Explicit navigation
+
+      // Explicit navigation to tabs
       router.replace('/(tabs)' as any);
 
     } catch (error: any) {

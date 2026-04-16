@@ -1,13 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Theme } from '@/constants/Theme';
-import { supabase } from '@/lib/supabase';
-import { useFamily } from '@/contexts/FamilyContext';
-import { ShoppingListItem, Item } from '@/types/database';
-import { Checkbox } from '@/components/ui/Checkbox';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { Theme } from '@/constants/Theme';
+import { useFamily } from '@/contexts/FamilyContext';
+import { supabase } from '@/lib/supabase';
+import { Item, ShoppingListItem } from '@/types/database';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type FilterType = 'All' | 'Not Bought' | 'Bought';
 
@@ -106,20 +106,19 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
-      <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>Dashboard</Text>
-      </View>
-
       <View style={styles.filterContainer}>
-        {(['Not Bought', 'Bought', 'All'] as FilterType[]).map(f => (
-          <Button
-            key={f}
-            title={f}
-            variant={filter === f ? 'primary' : 'outline'}
-            style={styles.filterButton}
-            onPress={() => setFilter(f)}
-          />
-        ))}
+        <Text style={styles.pageTitle}>Dashboard</Text>
+        <View style={{ flex: 1, flexDirection: 'row', gap: Theme.spacing.sm }}>
+          {(['Not Bought', 'Bought', 'All'] as FilterType[]).map(f => (
+            <Button
+              key={f}
+              title={f}
+              variant={filter === f ? 'primary' : 'outline'}
+              style={styles.filterButton}
+              onPress={() => setFilter(f)}
+            />
+          ))}
+        </View>
       </View>
 
       <FlatList
@@ -145,23 +144,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Theme.colors.background,
   },
-  pageHeader: {
-    paddingHorizontal: Theme.spacing.md,
-    paddingTop: Theme.spacing.md,
-    paddingBottom: Theme.spacing.sm,
+  filterContainer: {
+    flexDirection: 'column',
+    padding: Theme.spacing.md,
+    gap: Theme.spacing.md,
+    backgroundColor: Theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border,
   },
   pageTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: Theme.colors.text,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    padding: Theme.spacing.md,
-    gap: Theme.spacing.sm,
-    backgroundColor: Theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.border,
   },
   filterButton: {
     flex: 1,

@@ -20,14 +20,18 @@ function RootLayoutNav() {
 
     const inJoinGroup = segments[0] === 'join';
 
-    if (!familyId && !inJoinGroup) {
-      // Redirect to join page if not joined
-      router.replace('/join');
-    } else if (familyId && inJoinGroup) {
-      // Redirect to tabs if joined
-      router.replace('/(tabs)' as any);
-    }
-  }, [familyId, isLoading, segments]);
+    const timeout = setTimeout(() => {
+      if (!familyId && !inJoinGroup) {
+        // Redirect to join page if not joined
+        router.replace('/join');
+      } else if (familyId && inJoinGroup) {
+        // Redirect to tabs if joined
+        router.replace('/(tabs)' as any);
+      }
+    }, 1);
+
+    return () => clearTimeout(timeout);
+  }, [familyId, isLoading, segments, router]);
 
   if (isLoading) {
     return (
@@ -41,6 +45,7 @@ function RootLayoutNav() {
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="join" options={{ headerShown: false }} />
+      <Stack.Screen name="item/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
   );

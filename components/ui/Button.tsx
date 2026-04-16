@@ -6,9 +6,10 @@ interface ButtonProps extends TouchableOpacityProps {
   title: string;
   variant?: 'primary' | 'secondary' | 'outline';
   loading?: boolean;
+  textStyle?: any;
 }
 
-export function Button({ title, variant = 'primary', loading, style, ...props }: ButtonProps) {
+export function Button({ title, variant = 'primary', loading, style, textStyle, ...props }: ButtonProps) {
   
   const getBackgroundColor = () => {
     if (variant === 'primary') return Theme.colors.primary;
@@ -36,7 +37,7 @@ export function Button({ title, variant = 'primary', loading, style, ...props }:
       {loading ? (
         <ActivityIndicator color={getTextColor()} />
       ) : (
-        <Text style={[styles.text, { color: getTextColor() }]}>{title}</Text>
+        <Text style={[styles.text, { color: getTextColor() }, textStyle]}>{title}</Text>
       )}
     </TouchableOpacity>
   );

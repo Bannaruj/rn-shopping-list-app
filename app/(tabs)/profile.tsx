@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Alert, RefreshControl, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Alert, RefreshControl, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Theme } from '@/constants/Theme';
 import { supabase } from '@/lib/supabase';
@@ -52,22 +52,29 @@ export default function ProfileScreen() {
   }, [fetchProfileData]);
 
   const handleLeaveFamily = async () => {
-    Alert.alert(
-      "Leave Family",
-      "Are you sure you want to leave this family? You can join again if you have the access code.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Leave", 
-          style: "destructive",
-          onPress: async () => {
-            await leaveFamily();
-            // Need to replace the entire route stack when logging out
-            router.replace('/join');
+    if (Platform.OS === 'web') {
+      const confirmLeave = window.confirm("Are you sure you want to leave this family? You can join again if you have the access code.");
+      if (confirmLeave) {
+        router.replace('/join');
+        leaveFamily();
+      }
+    } else {
+      Alert.alert(
+        "Leave Family",
+        "Are you sure you want to leave this family? You can join again if you have the access code.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { 
+            text: "Leave", 
+            style: "destructive",
+            onPress: () => {
+              router.replace('/join');
+              leaveFamily();
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const renderMember = ({ item }: { item: User }) => (
